@@ -7,16 +7,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY;
 
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
+// Sirviendo archivos estáticos desde la carpeta "public"
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/', (req, res) => {
-  res.render('index', { results: { block: [], noBlock: [], invalid: [], undetected: [] } });
-});
-
+// Ruta para manejar la API de chequeo de hashes
 app.post('/check-hashes', async (req, res) => {
   const { hashes } = req.body;
   const hashList = hashes.split('\n').map(hash => hash.trim()).filter(hash => hash);
@@ -72,11 +67,8 @@ app.post('/check-hashes', async (req, res) => {
     }
   }
 
-  res.render('index', { results });
-});
-
-app.post('/clear-results', (req, res) => {
-  res.render('index', { results: { block: [], noBlock: [], invalid: [], undetected: [] } });
+  // Devolver resultados como JSON
+  res.json(results);
 });
 
 app.listen(PORT, () => {

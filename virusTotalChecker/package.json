@@ -1,13 +1,13 @@
 {
   "name": "virusTotalChecker",
   "version": "1.0.0",
-  "description": "",
+  "description": "A web application for checking hash detections on VirusTotal.",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["VirusTotal", "hash checker", "malware", "security"],
+  "author": "Paz",
   "license": "ISC",
   "dependencies": {
     "axios": "^0.21.1",
