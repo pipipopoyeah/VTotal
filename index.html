@@ -34,6 +34,21 @@
       <button onclick="copyToClipboard('undetectedList')">Copy</button>
     </div>
   </div>
+
+  <!-- Botón de ojo en la esquina inferior izquierda -->
+  <div class="eye-button" id="eyeButton">
+    👁️
+  </div>
+
+  <!-- Popup para mostrar la información de los vendors -->
+  <div id="vendorInfoPopup" class="popup">
+    <div class="popup-content">
+      <span class="close" onclick="closeVendorInfoPopup()">&times;</span>
+      <h2>Vendor Information</h2>
+      <div id="vendorInfo"></div>
+    </div>
+  </div>
+
   <script src="scripts.js"></script>
 </body>
 </html>
