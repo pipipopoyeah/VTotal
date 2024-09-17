@@ -6,74 +6,25 @@ document.getElementById('hashForm').addEventListener('submit', async function(ev
   event.preventDefault();
 
   const hashes = document.getElementById('hashes').value.split('\n').map(hash => hash.trim()).filter(hash => hash);
-  const results = { block: [], noBlock: [], invalid: [], undetected: [] };
+  const results = { block: new Set(), noBlock: new Set(), invalid: new Set(), undetected: new Set() };
   vendorInfo = ''; // Reinicia la información de los vendors
 
   for (const hash of hashes) {
-    if (!/^[a-f0-9]{32,64}$/i.test(hash)) {
-      results.invalid.push(hash);
-      continue;
-    }
-
-    try {
-      const response = await fetch(`https://www.virustotal.com/api/v3/files/${hash}`, {
-        headers: {
-          'x-apikey': VIRUSTOTAL_API_KEY
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error en la solicitud a VirusTotal: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const analysisResults = data.data.attributes.last_analysis_results;
-      let mcafeeDetected = false;
-      let mcafeeFound = false;
-      let isMaliciousByOtherVendors = false;
-
-      // Reseteamos la variable vendorInfo por cada hash
-      vendorInfo += `<h4>Hash: ${hash}</h4>`;
-
-      for (let vendor in analysisResults) {
-        const result = analysisResults[vendor].result;
-        const category = analysisResults[vendor].category;
-
-        // Guarda la información de los vendors para mostrar en el popup
-        if (vendor.toLowerCase().includes('mcafee')) {
-          vendorInfo += `<span class="mcafee-info">Vendor: ${vendor}, Category: ${category}, Result: ${result || 'null'}</span><br>`;
+    // Validar si el hash es SHA-256 (64 caracteres hexadecimales)
+    if (/^[a-f0-9]{64}$/i.test(hash)) {
+      await processHash(hash, results); // Procesa el hash si es válido
+    } else {
+      try {
+        // Intentar convertir a SHA-256 si no es un hash SHA-256 válido
+        const sha256Hash = await convertToSha256(hash);
+        if (!sha256Hash) {
+          results.invalid.add(hash); // Agrega a la lista de inválidos si no se puede convertir
         } else {
-          vendorInfo += `Vendor: ${vendor}, Category: ${category}, Result: ${result || 'null'}<br>`;
+          await processHash(sha256Hash, results); // Procesa el hash convertido
         }
-
-        // Revisa si McAfee o McAfeeD detectan el hash
-        if (vendor.toLowerCase().includes('mcafee')) {
-          mcafeeFound = true;
-          if (category === 'malicious') {
-            mcafeeDetected = true;
-            break; // Si McAfee lo detecta como malicioso, terminamos el ciclo
-          }
-        }
-
-        // Verifica si algún otro vendor lo marca como malicioso
-        if (category === 'malicious') {
-          isMaliciousByOtherVendors = true;
-        }
+      } catch (error) {
+        results.invalid.add(hash); // Si hay error, lo marca como inválido
       }
-
-      // Si McAfee no lo encontró, verificamos si otro vendor lo detecta como malicioso
-      if (!mcafeeFound || !mcafeeDetected) {
-        if (isMaliciousByOtherVendors) {
-          results.block.push(hash); // Se bloquea si otro vendor lo marca como malicioso y McAfee no lo detecta como tal
-        } else {
-          results.undetected.push(hash); // Si ningún vendor lo marca como malicioso, va a "Undetected by All Vendors"
-        }
-      } else {
-        results.noBlock.push(hash); // Si McAfee lo detecta como malicioso, no se bloquea
-      }
-
-    } catch (error) {
-      results.invalid.push(hash); // Si ocurre un error, se considera inválido
     }
   }
 
@@ -81,11 +32,111 @@ document.getElementById('hashForm').addEventListener('submit', async function(ev
   clearResults();
 
   // Muestra los resultados en las listas correspondientes
-  displayResults('blockList', results.block);
-  displayResults('noBlockList', results.noBlock);
-  displayResults('invalidList', results.invalid);
-  displayResults('undetectedList', results.undetected);
+  displayResults('blockList', Array.from(results.block));
+  displayResults('noBlockList', Array.from(results.noBlock));
+  displayResults('invalidList', Array.from(results.invalid));
+  displayResults('undetectedList', Array.from(results.undetected));
 });
+
+// Función para convertir un hash a SHA-256 usando VirusTotal
+async function convertToSha256(hash) {
+  try {
+    const response = await fetch(`https://www.virustotal.com/api/v3/files/${hash}`, {
+      headers: {
+        'x-apikey': VIRUSTOTAL_API_KEY
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error en la solicitud a VirusTotal: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const sha256 = data.data.id; // VirusTotal devuelve el SHA-256 en 'data.id'
+    return sha256;
+  } catch (error) {
+    console.error('Error al convertir el hash a SHA-256:', error);
+    return null;
+  }
+}
+
+// Función para procesar un hash y clasificarlo en las categorías adecuadas
+async function processHash(hash, results) {
+  try {
+    const response = await fetch(`https://www.virustotal.com/api/v3/files/${hash}`, {
+      headers: {
+        'x-apikey': VIRUSTOTAL_API_KEY
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error en la solicitud a VirusTotal: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data || !data.data || !data.data.attributes || !data.data.attributes.last_analysis_results) {
+      results.invalid.add(hash); // Si no hay resultados de análisis, lo marca como inválido
+      return;
+    }
+
+    const analysisResults = data.data.attributes.last_analysis_results;
+    let mcafeeDetected = false;
+    let mcafeeFound = false;
+    let isMaliciousByOtherVendors = false;
+
+    // Reseteamos la variable vendorInfo por cada hash
+    vendorInfo += `<h4>Hash: ${hash}</h4>`;
+    const vendorSet = new Set(); // Usamos un Set para eliminar duplicados en los vendors
+
+    for (let vendor in analysisResults) {
+      const result = analysisResults[vendor].result;
+      const category = analysisResults[vendor].category;
+
+      // Creamos una cadena única para cada vendor
+      const vendorEntry = `Vendor: ${vendor}, Category: ${category}, Result: ${result || 'null'}`;
+
+      // Agregamos la información del vendor al Set para evitar duplicados
+      vendorSet.add(vendorEntry);
+
+      // Revisa si McAfee o McAfeeD detectan el hash
+      if (vendor.toLowerCase().includes('mcafee')) {
+        mcafeeFound = true;
+        if (category === 'malicious') {
+          mcafeeDetected = true;
+          break; // Si McAfee lo detecta como malicioso, terminamos el ciclo
+        }
+      }
+
+      // Verifica si algún otro vendor lo marca como malicioso
+      if (category === 'malicious') {
+        isMaliciousByOtherVendors = true;
+      }
+    }
+
+    // Convertimos el Set a un string sin duplicados y agregamos al popup
+    vendorSet.forEach(vendorEntry => {
+      if (vendorEntry.toLowerCase().includes('mcafee')) {
+        vendorInfo += `<span class="mcafee-info">${vendorEntry}</span><br>`;
+      } else {
+        vendorInfo += `${vendorEntry}<br>`;
+      }
+    });
+
+    // Si McAfee no lo encontró, verificamos si otro vendor lo detecta como malicioso
+    if (!mcafeeFound || !mcafeeDetected) {
+      if (isMaliciousByOtherVendors) {
+        results.block.add(hash); // Se bloquea si otro vendor lo marca como malicioso y McAfee no lo detecta como tal
+      } else {
+        results.undetected.add(hash); // Si ningún vendor lo marca como malicioso, va a "Undetected by All Vendors"
+      }
+    } else {
+      results.noBlock.add(hash); // Si McAfee lo detecta como malicioso, no se bloquea
+    }
+
+  } catch (error) {
+    results.invalid.add(hash); // Si ocurre un error, se considera inválido
+  }
+}
 
 // Función para limpiar las listas de resultados
 function clearResults() {
@@ -103,12 +154,6 @@ function displayResults(listId, items) {
     li.textContent = item;
     list.appendChild(li);
   });
-}
-
-// Función para limpiar los inputs
-function clearInput() {
-  document.getElementById('hashes').value = '';
-  clearResults();
 }
 
 // Función para copiar contenido al portapapeles
@@ -155,6 +200,9 @@ document.addEventListener('keydown', function(event) {
 
 // Cerrar el popup con el botón de cerrar "X"
 document.getElementById('closePopup').addEventListener('click', closeVendorInfoPopup);
+
+// Asegúrate de que el botón "Clear" esté conectado correctamente
+document.getElementById('clearButton').addEventListener('click', clearInput);
 
 function clearInput() {
   document.getElementById('hashes').value = '';  // Limpiar el campo de texto
