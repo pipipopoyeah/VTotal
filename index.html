@@ -13,7 +13,7 @@
       <label for="hashes">Enter Hashes:</label>
       <textarea id="hashes" name="hashes" rows="10" required></textarea>
       <button type="submit">Process</button>
-      <button type="button" onclick="clearInput()">Clear</button>
+      <button type="button" id="clearButton">Clear</button>
     </form>
 
     <div class="results">
@@ -33,22 +33,28 @@
       <ul id="undetectedList"></ul>
       <button onclick="copyToClipboard('undetectedList')">Copy</button>
     </div>
-  </div>
 
-  <!-- Botón de ojo en la esquina inferior izquierda -->
-  <div class="eye-button" id="eyeButton">
-    👁️
-  </div>
+    <button id="eyeButton">👁️</button>
 
-  <!-- Popup para mostrar la información de los vendors -->
-  <div id="vendorInfoPopup" class="popup">
-    <div class="popup-content">
-      <span class="close" onclick="closeVendorInfoPopup()">&times;</span>
-      <h2>Vendor Information</h2>
-      <div id="vendorInfo"></div>
+    <!-- Popup para mostrar la información de los vendors -->
+    <div id="vendorInfoPopup" class="popup">
+      <div class="popup-content">
+        <span id="closePopup" class="close">&times;</span>
+        <h3>Vendor Information</h3>
+        <div id="vendorInfo"></div>
+      </div>
     </div>
-  </div>
 
-  <script src="scripts.js"></script>
+    <div id="vendorInfoPopup" class="popup">
+  <div class="popup-content">
+    <span id="closePopup" class="close">&times;</span> <!-- Botón de cierre "X" -->
+    <h2 style="color: pink;">Vendor Information</h2>
+    <div id="vendorInfo"></div>
+  </div>
+</div>
+
+
+    <script src="scripts.js"></script>
+  </div>
 </body>
 </html>

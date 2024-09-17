@@ -1,38 +1,22 @@
 // Inserta tu API key aquí
 const VIRUSTOTAL_API_KEY = '85cf97a6b2db72efc28aa90d39a79e24740bbcc231e99ce46ed41f79b0140490';
-let vendorInfoByHash = {}; // Objeto para almacenar la información de los vendors por hash
+let vendorInfo = ''; // Variable para almacenar la información de los vendors
 
 document.getElementById('hashForm').addEventListener('submit', async function(event) {
   event.preventDefault();
 
   const hashes = document.getElementById('hashes').value.split('\n').map(hash => hash.trim()).filter(hash => hash);
   const results = { block: [], noBlock: [], invalid: [], undetected: [] };
-  vendorInfoByHash = {}; // Reinicia la información de los vendors por hash
+  vendorInfo = ''; // Reinicia la información de los vendors
 
   for (const hash of hashes) {
     if (!/^[a-f0-9]{32,64}$/i.test(hash)) {
-      if (!results.invalid.includes(hash)) { // Verifica si ya está en la lista
-        results.invalid.push(hash); // Solo se agrega si no está
-      }
+      results.invalid.push(hash);
       continue;
     }
 
     try {
-      // Verifica si el hash es MD5, SHA-1 o SHA-256
-      const hashLength = hash.length;
-      let url;
-
-      if (hashLength === 32 || hashLength === 40 || hashLength === 64) {
-        // La API acepta MD5, SHA-1 y SHA-256
-        url = `https://www.virustotal.com/api/v3/files/${hash}`;
-      } else {
-        if (!results.invalid.includes(hash)) {
-          results.invalid.push(hash); // Si no es de estos tipos, lo tratamos como inválido
-        }
-        continue;
-      }
-
-      const response = await fetch(url, {
+      const response = await fetch(`https://www.virustotal.com/api/v3/files/${hash}`, {
         headers: {
           'x-apikey': VIRUSTOTAL_API_KEY
         }
@@ -43,27 +27,23 @@ document.getElementById('hashForm').addEventListener('submit', async function(ev
       }
 
       const data = await response.json();
-
-      // Si el hash ingresado es MD5 o SHA-1, obtenemos el SHA-256 desde VirusTotal
-      const sha256 = data.data.id;
       const analysisResults = data.data.attributes.last_analysis_results;
-
       let mcafeeDetected = false;
       let mcafeeFound = false;
       let isMaliciousByOtherVendors = false;
 
-      // Guarda la información de vendors en un array para el hash actual
-      vendorInfoByHash[sha256] = []; // Inicializa el array para este hash
+      // Reseteamos la variable vendorInfo por cada hash
+      vendorInfo += `<h4>Hash: ${hash}</h4>`;
 
       for (let vendor in analysisResults) {
         const result = analysisResults[vendor].result;
         const category = analysisResults[vendor].category;
 
-        // Formatea la información de McAfee en negrita
+        // Guarda la información de los vendors para mostrar en el popup
         if (vendor.toLowerCase().includes('mcafee')) {
-          vendorInfoByHash[sha256].push(`<strong>Vendor: ${vendor}, Category: ${category}, Result: ${result || 'null'}</strong>`);
+          vendorInfo += `<span class="mcafee-info">Vendor: ${vendor}, Category: ${category}, Result: ${result || 'null'}</span><br>`;
         } else {
-          vendorInfoByHash[sha256].push(`Vendor: ${vendor}, Category: ${category}, Result: ${result || 'null'}`);
+          vendorInfo += `Vendor: ${vendor}, Category: ${category}, Result: ${result || 'null'}<br>`;
         }
 
         // Revisa si McAfee o McAfeeD detectan el hash
@@ -81,27 +61,19 @@ document.getElementById('hashForm').addEventListener('submit', async function(ev
         }
       }
 
-      // Clasificación de acuerdo a la lógica, sin duplicados
+      // Si McAfee no lo encontró, verificamos si otro vendor lo detecta como malicioso
       if (!mcafeeFound || !mcafeeDetected) {
         if (isMaliciousByOtherVendors) {
-          if (!results.block.includes(sha256)) { // Evitar duplicados
-            results.block.push(sha256); // Se bloquea si otro vendor lo marca como malicioso y McAfee no lo detecta como tal
-          }
+          results.block.push(hash); // Se bloquea si otro vendor lo marca como malicioso y McAfee no lo detecta como tal
         } else {
-          if (!results.undetected.includes(sha256)) { // Evitar duplicados
-            results.undetected.push(sha256); // Si ningún vendor lo marca como malicioso, va a "Undetected by All Vendors"
-          }
+          results.undetected.push(hash); // Si ningún vendor lo marca como malicioso, va a "Undetected by All Vendors"
         }
       } else {
-        if (!results.noBlock.includes(sha256)) { // Evitar duplicados
-          results.noBlock.push(sha256); // Si McAfee lo detecta como malicioso, no se bloquea
-        }
+        results.noBlock.push(hash); // Si McAfee lo detecta como malicioso, no se bloquea
       }
 
     } catch (error) {
-      if (!results.invalid.includes(hash)) { // Evitar duplicados en inválidos
-        results.invalid.push(hash); // Si ocurre un error, se considera inválido
-      }
+      results.invalid.push(hash); // Si ocurre un error, se considera inválido
     }
   }
 
@@ -150,19 +122,12 @@ function copyToClipboard(listId) {
 
 // Función para abrir el popup del ojo
 function openVendorInfoPopup() {
-  const vendorInfoElement = document.getElementById('vendorInfo');
-  vendorInfoElement.innerHTML = ''; // Limpiamos el contenido del popup
-
-  // Recorre los hashes y agrega la información de los vendors
-  for (let hash in vendorInfoByHash) {
-    vendorInfoElement.innerHTML += `<strong>Hash: ${hash}</strong><br>`;
-    vendorInfoByHash[hash].forEach(info => {
-      vendorInfoElement.innerHTML += `${info}<br>`;
-    });
-    vendorInfoElement.innerHTML += '<hr>'; // Separador entre hashes
+  if (vendorInfo) {
+    document.getElementById('vendorInfo').innerHTML = vendorInfo;
+    document.getElementById('vendorInfoPopup').style.display = 'block';
+  } else {
+    alert("No hay información de vendors disponible");
   }
-
-  document.getElementById('vendorInfoPopup').style.display = 'block';
 }
 
 // Función para cerrar el popup del ojo
@@ -170,7 +135,10 @@ function closeVendorInfoPopup() {
   document.getElementById('vendorInfoPopup').style.display = 'none';
 }
 
-// Cerrar el popup al hacer clic fuera del popup
+// Asegurarse de que el botón del ojo funcione
+document.getElementById('eyeButton').addEventListener('click', openVendorInfoPopup);
+
+// Cerrar el popup si se hace clic fuera del popup
 window.addEventListener('click', function(event) {
   const popup = document.getElementById('vendorInfoPopup');
   if (event.target === popup) {
@@ -178,12 +146,20 @@ window.addEventListener('click', function(event) {
   }
 });
 
-// Cerrar el popup al presionar la tecla ESC
-window.addEventListener('keydown', function(event) {
+// Cerrar el popup con la tecla Esc
+document.addEventListener('keydown', function(event) {
   if (event.key === 'Escape') {
     closeVendorInfoPopup();
   }
 });
 
-// Asegurarse de que el botón del ojo funcione
-document.getElementById('eyeButton').addEventListener('click', openVendorInfoPopup);
+// Cerrar el popup con el botón de cerrar "X"
+document.getElementById('closePopup').addEventListener('click', closeVendorInfoPopup);
+
+function clearInput() {
+  document.getElementById('hashes').value = '';  // Limpiar el campo de texto
+  clearResults();  // Limpiar las listas de resultados
+}
+
+// Asegúrate de que el botón "Clear" esté conectado correctamente
+document.getElementById('clearButton').addEventListener('click', clearInput);
