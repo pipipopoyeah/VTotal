@@ -7,6 +7,14 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div id="vendorInfoPopup" style="display:none;">
+    <div class="popup-content">
+      <span id="closePopup">&times;</span>
+      <h3>Información de Vendors</h3>
+      <div id="vendorInfo"></div>
+    </div>
+  </div>
+  <button id="eyeButton">👁️</button>
   <div class="container">
     <h1>VirusTotal Hash Checker</h1>
     <form id="hashForm">
@@ -35,16 +43,10 @@
     </div>
 
     <!-- Popup para mostrar la información de los vendors -->
-    <div id="vendorInfoPopup" style="display:none;">
-      <div class="popup-content">
-        <span id="closePopup">&times;</span>
-        <div id="vendorInfo"></div>
-      </div>
-    </div>
-    <button id="eyeButton">👁️</button>
+   
 
   </div>
-
+  
   <script src="scripts.js"></script>
 </body>
 </html>

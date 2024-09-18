@@ -43,7 +43,7 @@ document.getElementById('hashForm').addEventListener('submit', async function(ev
   displayResults('undetectedList', Array.from(results.undetected));
 });
 
-// Función para convertir un hash a SHA-256 usando VirusTotal
+// Función para convertir un hash (SHA1 o MD5) a SHA-256 usando VirusTotal
 async function convertToSha256(hash) {
   try {
     const response = await fetch(`https://www.virustotal.com/api/v3/files/${hash}`, {
@@ -148,9 +148,7 @@ async function processHash(hash, results) {
   }
 }
 
-
-
-// Función para limpiar las listas de resultados
+// Funciones para limpiar las listas de resultados y mostrar resultados
 function clearResults() {
   document.getElementById('blockList').innerHTML = '';
   document.getElementById('noBlockList').innerHTML = '';
@@ -158,7 +156,6 @@ function clearResults() {
   document.getElementById('undetectedList').innerHTML = '';
 }
 
-// Función para mostrar resultados en una lista
 function displayResults(listId, items) {
   const list = document.getElementById(listId);
   items.forEach(item => {
@@ -167,16 +164,6 @@ function displayResults(listId, items) {
     list.appendChild(li);
   });
 }
-
-// Función para copiar contenido al portapapeles
-function copyToClipboard(listId) {
-  const list = document.getElementById(listId);
-  const text = Array.from(list.children).map(li => li.textContent).join('\n');
-  navigator.clipboard.writeText(text).catch(err => {
-    console.error('No se pudo copiar el texto: ', err);
-  });
-}
-
 // Función para abrir el popup del ojo
 function openVendorInfoPopup() {
   if (vendorInfo) {
@@ -187,12 +174,12 @@ function openVendorInfoPopup() {
   }
 }
 
-// Función para cerrar el popup del ojo
+// Función para cerrar el popup
 function closeVendorInfoPopup() {
   document.getElementById('vendorInfoPopup').style.display = 'none';
 }
 
-// Asegurarse de que el botón del ojo funcione
+// Asegúrate de que el botón del ojo esté conectado correctamente
 document.getElementById('eyeButton').addEventListener('click', openVendorInfoPopup);
 
 // Cerrar el popup si se hace clic fuera del popup
@@ -213,11 +200,32 @@ document.addEventListener('keydown', function(event) {
 // Cerrar el popup con el botón de cerrar "X"
 document.getElementById('closePopup').addEventListener('click', closeVendorInfoPopup);
 
-// Función para limpiar los inputs
+
+// Función para limpiar los inputs y las listas de resultados
 function clearInput() {
-  document.getElementById('hashes').value = '';  // Limpiar el campo de texto
+  document.getElementById('hashes').value = '';  // Limpiar el campo de texto de hashes
   clearResults();  // Limpiar las listas de resultados
 }
 
 // Asegúrate de que el botón "Clear" esté conectado correctamente
 document.getElementById('clearButton').addEventListener('click', clearInput);
+
+// Función para copiar el contenido de una lista al portapapeles
+function copyToClipboard(listId) {
+  const list = document.getElementById(listId);
+  if (list) {
+    // Obtener el texto de todos los elementos <li> dentro de la lista
+    const text = Array.from(list.children).map(li => li.textContent).join('\n');
+    // Usar la API de Clipboard para copiar el texto
+    navigator.clipboard.writeText(text).catch(err => {
+      console.error('No se pudo copiar el texto: ', err);
+    });
+  }
+}
+
+// Asegúrate de que los botones "Copy" estén conectados a los eventos correctos
+document.getElementById('copyBlockList').addEventListener('click', () => copyToClipboard('blockList'));
+document.getElementById('copyNoBlockList').addEventListener('click', () => copyToClipboard('noBlockList'));
+document.getElementById('copyInvalidList').addEventListener('click', () => copyToClipboard('invalidList'));
+document.getElementById('copyUndetectedList').addEventListener('click', () => copyToClipboard('undetectedList'));
+
