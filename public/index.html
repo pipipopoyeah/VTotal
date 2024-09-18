@@ -34,27 +34,17 @@
       <button onclick="copyToClipboard('undetectedList')">Copy</button>
     </div>
 
-    <button id="eyeButton">👁️</button>
-
     <!-- Popup para mostrar la información de los vendors -->
-    <div id="vendorInfoPopup" class="popup">
+    <div id="vendorInfoPopup" style="display:none;">
       <div class="popup-content">
-        <span id="closePopup" class="close">&times;</span>
-        <h3>Vendor Information</h3>
+        <span id="closePopup">&times;</span>
         <div id="vendorInfo"></div>
       </div>
     </div>
+    <button id="eyeButton">👁️</button>
 
-    <div id="vendorInfoPopup" class="popup">
-  <div class="popup-content">
-    <span id="closePopup" class="close">&times;</span> <!-- Botón de cierre "X" -->
-    <h2 style="color: pink;">Vendor Information</h2>
-    <div id="vendorInfo"></div>
   </div>
-</div>
 
-
-    <script src="scripts.js"></script>
-  </div>
+  <script src="scripts.js"></script>
 </body>
 </html>

@@ -1,3 +1,5 @@
+console.log('Script cargado correctamente');
+
 // Inserta tu API key aquí
 const VIRUSTOTAL_API_KEY = '85cf97a6b2db72efc28aa90d39a79e24740bbcc231e99ce46ed41f79b0140490';
 let vendorInfo = ''; // Variable para almacenar la información de los vendors
@@ -9,7 +11,10 @@ document.getElementById('hashForm').addEventListener('submit', async function(ev
   const results = { block: new Set(), noBlock: new Set(), invalid: new Set(), undetected: new Set() };
   vendorInfo = ''; // Reinicia la información de los vendors
 
-  for (const hash of hashes) {
+  // Eliminar duplicados de los hashes
+  const uniqueHashes = [...new Set(hashes)];
+
+  for (const hash of uniqueHashes) {
     // Validar si el hash es SHA-256 (64 caracteres hexadecimales)
     if (/^[a-f0-9]{64}$/i.test(hash)) {
       await processHash(hash, results); // Procesa el hash si es válido
@@ -70,12 +75,14 @@ async function processHash(hash, results) {
     });
 
     if (!response.ok) {
+      console.error(`Error en la solicitud a VirusTotal para el hash: ${hash}, status: ${response.status}`);
       throw new Error(`Error en la solicitud a VirusTotal: ${response.status}`);
     }
 
     const data = await response.json();
     if (!data || !data.data || !data.data.attributes || !data.data.attributes.last_analysis_results) {
-      results.invalid.add(hash); // Si no hay resultados de análisis, lo marca como inválido
+      console.error(`Datos incompletos o inválidos para el hash: ${hash}`, data);
+      results.invalid.add(hash);
       return;
     }
 
@@ -134,9 +141,11 @@ async function processHash(hash, results) {
     }
 
   } catch (error) {
+    console.error(`Error procesando el hash ${hash}:`, error);
     results.invalid.add(hash); // Si ocurre un error, se considera inválido
   }
 }
+
 
 // Función para limpiar las listas de resultados
 function clearResults() {
@@ -201,9 +210,7 @@ document.addEventListener('keydown', function(event) {
 // Cerrar el popup con el botón de cerrar "X"
 document.getElementById('closePopup').addEventListener('click', closeVendorInfoPopup);
 
-// Asegúrate de que el botón "Clear" esté conectado correctamente
-document.getElementById('clearButton').addEventListener('click', clearInput);
-
+// Función para limpiar los inputs
 function clearInput() {
   document.getElementById('hashes').value = '';  // Limpiar el campo de texto
   clearResults();  // Limpiar las listas de resultados
