@@ -43,27 +43,30 @@ document.getElementById('hashForm').addEventListener('submit', async function(ev
   displayResults('undetectedList', Array.from(results.undetected));
 });
 
-// Función para convertir un hash (SHA1 o MD5) a SHA-256 usando VirusTotal
+// Función para convertir un hash (SHA1 o MD5) a SHA-256 usando el backend
 async function convertToSha256(hash) {
   try {
-    const response = await fetch(`https://www.virustotal.com/api/v3/files/${hash}`, {
+    const response = await fetch('/api/convert-hash', {
+      method: 'POST',
       headers: {
-        'x-apikey': VIRUSTOTAL_API_KEY
-      }
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ hash })
     });
 
     if (!response.ok) {
-      throw new Error(`Error en la solicitud a VirusTotal: ${response.status}`);
+      throw new Error(`Error en la solicitud al backend para la conversión de hash: ${response.status}`);
     }
 
     const data = await response.json();
-    const sha256 = data.data.id; // VirusTotal devuelve el SHA-256 en 'data.id'
-    return sha256;
+    return data.sha256;
   } catch (error) {
     console.error('Error al convertir el hash a SHA-256:', error);
     return null;
   }
 }
+
+
 
 // Función para procesar un hash y clasificarlo en las categorías adecuadas
 async function processHash(hash, results) {

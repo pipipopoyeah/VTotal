@@ -32,6 +32,30 @@ app.post('/api/check-hash', async (req, res) => {
   }
 });
 
+
+app.post('/api/convert-hash', async (req, res) => {
+  const { hash } = req.body;
+
+  try {
+    const response = await fetch(`https://www.virustotal.com/api/v3/files/${hash}`, {
+      headers: {
+        'x-apikey': VIRUSTOTAL_API_KEY
+      }
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: `Error en la solicitud a VirusTotal: ${response.status}` });
+    }
+
+    const data = await response.json();
+    const sha256 = data.data.id; // Extraer el SHA-256 de la respuesta
+    res.json({ sha256 });
+  } catch (error) {
+    res.status(500).json({ error: 'Error procesando la conversión del hash' });
+  }
+});
+
+
 // Ruta para servir el archivo index.html por defecto
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -41,3 +65,5 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+
