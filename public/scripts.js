@@ -201,6 +201,18 @@ document.addEventListener('keydown', function(event) {
 document.getElementById('closePopup').addEventListener('click', closeVendorInfoPopup);
 
 
+// Cerrar el popup si se hace clic fuera del popup
+window.addEventListener('click', function(event) {
+  const popup = document.getElementById('vendorInfoPopup');
+  const eyeButton = document.getElementById('eyeButton');
+  
+  // Verificar si el clic es fuera del popup y no en el botón del ojo
+  if (event.target !== popup && !popup.contains(event.target) && event.target !== eyeButton) {
+    closeVendorInfoPopup();
+  }
+});
+
+
 // Función para limpiar los inputs y las listas de resultados
 function clearInput() {
   document.getElementById('hashes').value = '';  // Limpiar el campo de texto de hashes
