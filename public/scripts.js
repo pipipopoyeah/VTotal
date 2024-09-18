@@ -68,15 +68,17 @@ async function convertToSha256(hash) {
 // Función para procesar un hash y clasificarlo en las categorías adecuadas
 async function processHash(hash, results) {
   try {
-    const response = await fetch(`https://www.virustotal.com/api/v3/files/${hash}`, {
+    const response = await fetch('/api/check-hash', {
+      method: 'POST',
       headers: {
-        'x-apikey': VIRUSTOTAL_API_KEY
-      }
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ hash })
     });
 
     if (!response.ok) {
-      console.error(`Error en la solicitud a VirusTotal para el hash: ${hash}, status: ${response.status}`);
-      throw new Error(`Error en la solicitud a VirusTotal: ${response.status}`);
+      console.error(`Error en la solicitud al backend para el hash: ${hash}, status: ${response.status}`);
+      throw new Error(`Error en la solicitud al backend: ${response.status}`);
     }
 
     const data = await response.json();
@@ -145,6 +147,7 @@ async function processHash(hash, results) {
     results.invalid.add(hash); // Si ocurre un error, se considera inválido
   }
 }
+
 
 
 // Función para limpiar las listas de resultados
