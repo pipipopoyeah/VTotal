@@ -43,7 +43,7 @@ document.getElementById('hashForm').addEventListener('submit', async function(ev
   displayResults('undetectedList', Array.from(results.undetected));
 });
 
-// Función para convertir un hash (SHA1 o MD5) a SHA-256 usando el backend
+// Función para convertir un hash (SHA1 o MD5) a SHA-256 usando el backendd
 async function convertToSha256(hash) {
   try {
     const response = await fetch('/api/convert-hash', {
